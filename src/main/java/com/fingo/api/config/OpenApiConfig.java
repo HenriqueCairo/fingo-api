@@ -63,7 +63,7 @@ public class OpenApiConfig {
                 )
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080")
+                                .url("/")
                                 .description("Servidor local de desenvolvimento")
                 ))
                 .tags(List.of(
