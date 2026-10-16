@@ -1,0 +1,61 @@
+
+:root {
+    --fingo-primary: #103D37;
+    --fingo-accent: #A8D86D;
+    --fingo-background: #F4F7F5;
+    --fingo-text: #18352F;
+}
+
+body {
+    background: var(--fingo-background);
+}
+
+.swagger-ui {
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.swagger-ui .topbar {
+    background: var(--fingo-primary);
+    border-bottom: 4px solid var(--fingo-accent);
+}
+
+.swagger-ui .info .title {
+    color: var(--fingo-primary);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.swagger-ui .info .description {
+    color: var(--fingo-text);
+    line-height: 1.7;
+}
+
+.swagger-ui .scheme-container {
+    background: #FFFFFF;
+    box-shadow: 0 2px 12px rgba(16, 61, 55, 0.08);
+}
+
+.swagger-ui .opblock-tag {
+    color: var(--fingo-primary);
+    font-weight: 700;
+}
+
+.swagger-ui .opblock {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.swagger-ui .btn.execute {
+    background: var(--fingo-primary);
+    border-color: var(--fingo-primary);
+    color: #FFFFFF;
+}
+
+.swagger-ui .btn.execute:hover {
+    background: #18574E;
+}
+
+.swagger-ui .model-title,
+.swagger-ui .parameter__name {
+    color: var(--fingo-primary);
+}
