@@ -1,21 +1,26 @@
 
 package com.fingo.api.controller;
 
+import com.fingo.api.entity.Conquista;
 import com.fingo.api.entity.Usuario;
+import com.fingo.api.repository.ConquistaRepository;
 import com.fingo.api.repository.UsuarioRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import com.fingo.api.entity.Conquista;
-import com.fingo.api.repository.ConquistaRepository;
-import org.springframework.hateoas.EntityModel;
+import com.fingo.api.config.PaginacaoConfig;
+
+import java.util.Locale;
+import java.util.Set;
+
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
@@ -29,16 +34,24 @@ public class UsuarioController {
 
     public UsuarioController(
             UsuarioRepository repository,
-            ConquistaRepository conquistaRepository) {
-
+            ConquistaRepository conquistaRepository
+    ) {
         this.repository = repository;
         this.conquistaRepository = conquistaRepository;
     }
 
     public record UsuarioRequest(
-            @NotBlank String nome,
-            @NotBlank @Email String email,
-            @NotBlank String senha
+            @NotBlank
+            @Size(min = 2, max = 100)
+            String nome,
+
+            @NotBlank
+            @Email
+            String email,
+
+            @NotBlank
+            @Size(min = 8, message = "A senha deve ter pelo menos 8 caracteres")
+            String senha
     ) {}
 
     public record UsuarioResponse(
@@ -55,12 +68,48 @@ public class UsuarioController {
         );
     }
 
+    private String normalizarEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+
+    private void validarEmail(String email, Long usuarioAtualId) {
+
+        boolean duplicado;
+
+        if (usuarioAtualId == null) {
+            duplicado = repository.existsByEmailIgnoreCase(email);
+        } else {
+            duplicado = repository.existsByEmailIgnoreCaseAndIdNot(
+                    email,
+                    usuarioAtualId
+            );
+        }
+
+        if (duplicado) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Este e-mail já está cadastrado. Utilize outro endereço."
+            );
+        }
+    }
+
+
+
+    private Usuario encontrar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Usuário não encontrado"
+                ));
+    }
+
     @GetMapping
     public Page<UsuarioResponse> listar(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        return repository.findAll(PageRequest.of(page, size))
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return repository.findAll(PaginacaoConfig.criar(page, size))
                 .map(this::resposta);
     }
 
@@ -69,19 +118,16 @@ public class UsuarioController {
         return resposta(encontrar(id));
     }
 
-    private Usuario encontrar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Usuário não encontrado"));
-    }
-
     @PostMapping
     public ResponseEntity<UsuarioResponse> criar(
-            @Valid @RequestBody UsuarioRequest dados) {
+            @Valid @RequestBody UsuarioRequest dados
+    ) {
+        String email = normalizarEmail(dados.email());
+        validarEmail(email, null);
 
         Usuario usuario = new Usuario();
-        usuario.setNome(dados.nome());
-        usuario.setEmail(dados.email());
+        usuario.setNome(dados.nome().trim());
+        usuario.setEmail(email);
         usuario.setSenha(encoder.encode(dados.senha()));
 
         Usuario salvo = repository.save(usuario);
@@ -93,11 +139,15 @@ public class UsuarioController {
     @PutMapping("/{id}")
     public UsuarioResponse atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody UsuarioRequest dados) {
-
+            @Valid @RequestBody UsuarioRequest dados
+    ) {
         Usuario usuario = encontrar(id);
-        usuario.setNome(dados.nome());
-        usuario.setEmail(dados.email());
+        String email = normalizarEmail(dados.email());
+
+        validarEmail(email, id);
+
+        usuario.setNome(dados.nome().trim());
+        usuario.setEmail(email);
         usuario.setSenha(encoder.encode(dados.senha()));
 
         return resposta(repository.save(usuario));
@@ -114,27 +164,29 @@ public class UsuarioController {
     public Page<UsuarioResponse> pesquisar(
             @RequestParam String nome,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
+            @RequestParam(defaultValue = "10") int size
+    ) {
         return repository.findByNomeContainingIgnoreCase(
-                        nome, PageRequest.of(page, size))
-                .map(this::resposta);
+                nome, PaginacaoConfig.criar(page, size)
+        ).map(this::resposta);
     }
 
     @PostMapping("/{usuarioId}/conquistas/{conquistaId}")
     public ResponseEntity<Void> atribuirConquista(
             @PathVariable Long usuarioId,
-            @PathVariable Long conquistaId) {
-
+            @PathVariable Long conquistaId
+    ) {
         Usuario usuario = repository.findWithConquistasById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Usuário não encontrado"));
+                        "Usuário não encontrado"
+                ));
 
         Conquista conquista = conquistaRepository.findById(conquistaId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Conquista não encontrada"));
+                        "Conquista não encontrada"
+                ));
 
         usuario.getConquistas().add(conquista);
         repository.save(usuario);
@@ -143,21 +195,22 @@ public class UsuarioController {
     }
 
     @GetMapping("/{usuarioId}/conquistas")
-    public java.util.Set<Conquista> listarConquistas(
-            @PathVariable Long usuarioId) {
-
+    public Set<Conquista> listarConquistas(
+            @PathVariable Long usuarioId
+    ) {
         Usuario usuario = repository.findWithConquistasById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Usuário não encontrado"));
+                        "Usuário não encontrado"
+                ));
 
         return usuario.getConquistas();
     }
 
     @GetMapping("/{id}/detalhes")
     public EntityModel<UsuarioResponse> buscarComLinks(
-            @PathVariable Long id) {
-
+            @PathVariable Long id
+    ) {
         UsuarioResponse usuario = buscar(id);
 
         return EntityModel.of(
@@ -168,7 +221,6 @@ public class UsuarioController {
                         .listarConquistas(id)).withRel("conquistas")
         );
     }
-
-
 }
+
 

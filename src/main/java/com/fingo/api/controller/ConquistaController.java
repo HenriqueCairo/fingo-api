@@ -5,13 +5,13 @@ import com.fingo.api.entity.Conquista;
 import com.fingo.api.repository.ConquistaRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.hateoas.EntityModel;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+import com.fingo.api.config.PaginacaoConfig;
 
 @RestController
 @RequestMapping("/api/conquistas")
@@ -28,7 +28,7 @@ public class ConquistaController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        return repository.findAll(PageRequest.of(page, size));
+        return repository.findAll(PaginacaoConfig.criar(page, size));
     }
 
     @GetMapping("/{id}")
@@ -77,7 +77,7 @@ public class ConquistaController {
             @RequestParam(defaultValue = "10") int size) {
 
         return repository.findByPontosGreaterThanEqual(
-                pontos, PageRequest.of(page, size));
+                pontos, PaginacaoConfig.criar(page, size));
     }
 
     @GetMapping("/{id}/detalhes")

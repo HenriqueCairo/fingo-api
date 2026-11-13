@@ -1,16 +1,17 @@
-
 package com.fingo.api.config;
 
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -23,39 +24,57 @@ public class SwaggerDocumentationConfig {
             String descricao
     ) {}
 
-    private static final Map<String, Modulo> MODULOS = new LinkedHashMap<>();
+    private static final Map<String, Modulo> MODULOS =
+            new LinkedHashMap<>();
 
     static {
         MODULOS.put("/api/usuarios",
-                new Modulo("01 | Gestão de Usuários",
-                        "usuário", "usuários",
-                        "Cadastro e gerenciamento de usuários da plataforma."));
+                new Modulo(
+                        "01 | Gestão de Usuários",
+                        "usuário",
+                        "usuários",
+                        "Cadastro e gerenciamento de usuários."
+                ));
 
         MODULOS.put("/api/perfis-financeiros",
-                new Modulo("02 | Perfis Financeiros",
-                        "perfil financeiro", "perfis financeiros",
-                        "Classificação financeira e vínculo com usuários."));
+                new Modulo(
+                        "02 | Perfis Financeiros",
+                        "perfil financeiro",
+                        "perfis financeiros",
+                        "Classificação financeira dos usuários."
+                ));
 
         MODULOS.put("/api/trilhas",
-                new Modulo("03 | Trilhas de Aprendizagem",
-                        "trilha", "trilhas",
-                        "Jornadas estruturadas de educação financeira."));
+                new Modulo(
+                        "03 | Trilhas de Aprendizagem",
+                        "trilha",
+                        "trilhas",
+                        "Jornadas de educação financeira."
+                ));
 
         MODULOS.put("/api/aulas",
-                new Modulo("04 | Conteúdo Educacional",
-                        "aula", "aulas",
-                        "Conteúdos vinculados às trilhas de aprendizagem."));
+                new Modulo(
+                        "04 | Conteúdo Educacional",
+                        "aula",
+                        "aulas",
+                        "Conteúdos das trilhas."
+                ));
 
         MODULOS.put("/api/conquistas",
-                new Modulo("05 | Gamificação e Conquistas",
-                        "conquista", "conquistas",
-                        "Reconhecimento e pontuação do progresso educacional."));
+                new Modulo(
+                        "05 | Gamificação e Conquistas",
+                        "conquista",
+                        "conquistas",
+                        "Pontuação e reconhecimento."
+                ));
     }
 
     @Bean
     public OpenApiCustomizer documentacaoFinGo() {
         return openApi -> {
-            if (openApi.getPaths() == null) return;
+            if (openApi.getPaths() == null) {
+                return;
+            }
 
             openApi.getPaths().forEach((path, item) -> {
                 if (path.equals("/api/status")) {
@@ -64,9 +83,11 @@ public class SwaggerDocumentationConfig {
                 }
 
                 MODULOS.forEach((base, modulo) -> {
-                    if (path.equals(base) ||
-                            path.startsWith(base + "/")) {
-                        documentarRecurso(path, base, item, modulo);
+                    if (path.equals(base)
+                            || path.startsWith(base + "/")) {
+                        documentarRecurso(
+                                path, base, item, modulo
+                        );
                     }
                 });
             });
@@ -75,11 +96,14 @@ public class SwaggerDocumentationConfig {
 
     private void documentarStatus(PathItem item) {
         item.readOperationsMap().forEach((metodo, operacao) -> {
-            operacao.setTags(java.util.List.of("06 | Monitoramento"));
+            operacao.setTags(List.of("06 | Monitoramento"));
             operacao.setSummary("Verificar disponibilidade da API");
             operacao.setDescription(
-                    "Verifica se o serviço FinGo está respondendo.");
-            resposta(operacao, "200", "API em funcionamento");
+                    "Verifica se o serviço FinGo está respondendo."
+            );
+
+            definirRespostas(operacao,
+                    Map.of("200", "API em funcionamento"));
         });
     }
 
@@ -87,28 +111,40 @@ public class SwaggerDocumentationConfig {
             String path,
             String base,
             PathItem item,
-            Modulo modulo) {
-
+            Modulo modulo
+    ) {
         item.readOperationsMap().forEach((metodo, operacao) -> {
-            operacao.setTags(java.util.List.of(modulo.tag()));
+            operacao.setTags(List.of(modulo.tag()));
 
             String sufixo = path.substring(base.length());
 
             if (sufixo.equals("/pesquisar")) {
                 configurar(operacao,
                         "Pesquisar " + modulo.plural(),
-                        "Executa uma consulta personalizada com filtros e paginação.",
-                        "200", "Pesquisa realizada com sucesso");
+                        "Consulta personalizada com filtros e paginação."
+                );
+
+                definirRespostas(operacao,
+                        Map.of(
+                                "200", "Pesquisa realizada",
+                                "400", "Parâmetros inválidos"
+                        ));
+
                 documentarPaginacao(operacao);
                 return;
             }
 
             if (sufixo.endsWith("/detalhes")) {
                 configurar(operacao,
-                        "Consultar detalhes HATEOAS de " + modulo.singular(),
-                        "Retorna o recurso com links de navegação no campo _links.",
-                        "200", "Recurso e links retornados");
-                resposta(operacao, "404", "Recurso não encontrado");
+                        "Consultar detalhes HATEOAS",
+                        "Retorna o recurso com links de navegação."
+                );
+
+                definirRespostas(operacao,
+                        Map.of(
+                                "200", "Recurso encontrado com links",
+                                "404", "Recurso não encontrado"
+                        ));
                 return;
             }
 
@@ -116,9 +152,14 @@ public class SwaggerDocumentationConfig {
                     && sufixo.endsWith("/conquistas")) {
                 configurar(operacao,
                         "Consultar conquistas do usuário",
-                        "Lista as conquistas vinculadas ao usuário informado.",
-                        "200", "Conquistas consultadas");
-                resposta(operacao, "404", "Usuário não encontrado");
+                        "Retorna as conquistas vinculadas ao usuário."
+                );
+
+                definirRespostas(operacao,
+                        Map.of(
+                                "200", "Conquistas consultadas",
+                                "404", "Usuário não encontrado"
+                        ));
                 return;
             }
 
@@ -126,10 +167,14 @@ public class SwaggerDocumentationConfig {
                     && sufixo.contains("/conquistas/")) {
                 configurar(operacao,
                         "Atribuir conquista ao usuário",
-                        "Associa uma conquista existente a um usuário existente.",
-                        "204", "Conquista atribuída");
-                resposta(operacao, "404",
-                        "Usuário ou conquista não encontrado");
+                        "Associa uma conquista existente a um usuário."
+                );
+
+                definirRespostas(operacao,
+                        Map.of(
+                                "204", "Conquista atribuída",
+                                "404", "Usuário ou conquista não encontrado"
+                        ));
                 return;
             }
 
@@ -138,49 +183,101 @@ public class SwaggerDocumentationConfig {
                     case GET -> {
                         configurar(operacao,
                                 "Listar " + modulo.plural(),
-                                "Retorna uma página de " + modulo.plural()
-                                        + " cadastrados na plataforma.",
-                                "200", "Listagem realizada");
+                                "Retorna uma página de "
+                                        + modulo.plural() + "."
+                        );
+
+                        definirRespostas(operacao,
+                                Map.of(
+                                        "200", "Listagem realizada",
+                                        "400", "Parâmetros inválidos"
+                                ));
+
                         documentarPaginacao(operacao);
                     }
+
                     case POST -> {
                         configurar(operacao,
                                 "Cadastrar " + modulo.singular(),
-                                "Cria um novo registro de " + modulo.singular()
-                                        + ". Os campos devem atender às validações.",
-                                "201", "Recurso criado");
-                        resposta(operacao, "400",
-                                "Dados inválidos ou campos obrigatórios ausentes");
+                                "Cria um novo registro validado."
+                        );
+
+                        Map<String, String> respostas =
+                                new LinkedHashMap<>();
+
+                        respostas.put("201", "Recurso criado");
+                        respostas.put("400", "Dados inválidos");
+
+                        if (base.equals("/api/usuarios")) {
+                            respostas.put(
+                                    "409",
+                                    "E-mail já cadastrado"
+                            );
+                        }
+
+                        definirRespostas(operacao, respostas);
                     }
-                    default -> {}
+
+                    default -> {
+                    }
                 }
                 return;
             }
 
             if (sufixo.equals("/{id}")) {
                 switch (metodo) {
-                    case GET -> configurar(operacao,
-                            "Consultar " + modulo.singular() + " por ID",
-                            "Busca o recurso identificado pelo ID informado.",
-                            "200", "Recurso encontrado");
+                    case GET -> {
+                        configurar(operacao,
+                                "Consultar " + modulo.singular() + " por ID",
+                                "Busca o recurso pelo identificador."
+                        );
+
+                        definirRespostas(operacao,
+                                Map.of(
+                                        "200", "Recurso encontrado",
+                                        "404", "Recurso não encontrado"
+                                ));
+                    }
 
                     case PUT -> {
                         configurar(operacao,
                                 "Atualizar " + modulo.singular(),
-                                "Atualiza os dados do recurso existente.",
-                                "200", "Recurso atualizado");
-                        resposta(operacao, "400", "Dados inválidos");
+                                "Atualiza um recurso existente."
+                        );
+
+                        Map<String, String> respostas =
+                                new LinkedHashMap<>();
+
+                        respostas.put("200", "Recurso atualizado");
+                        respostas.put("400", "Dados inválidos");
+                        respostas.put("404", "Recurso não encontrado");
+
+                        if (base.equals("/api/usuarios")) {
+                            respostas.put(
+                                    "409",
+                                    "E-mail já cadastrado"
+                            );
+                        }
+
+                        definirRespostas(operacao, respostas);
                     }
 
-                    case DELETE -> configurar(operacao,
-                            "Excluir " + modulo.singular(),
-                            "Remove o recurso identificado pelo ID.",
-                            "204", "Recurso excluído");
+                    case DELETE -> {
+                        configurar(operacao,
+                                "Excluir " + modulo.singular(),
+                                "Remove o recurso identificado pelo ID."
+                        );
 
-                    default -> {}
+                        definirRespostas(operacao,
+                                Map.of(
+                                        "204", "Recurso excluído",
+                                        "404", "Recurso não encontrado"
+                                ));
+                    }
+
+                    default -> {
+                    }
                 }
-
-                resposta(operacao, "404", "Recurso não encontrado");
             }
         });
     }
@@ -188,51 +285,90 @@ public class SwaggerDocumentationConfig {
     private void configurar(
             Operation operacao,
             String resumo,
-            String descricao,
-            String codigo,
-            String respostaDescricao) {
-
+            String descricao
+    ) {
         operacao.setSummary(resumo);
         operacao.setDescription(descricao);
-
-        resposta(operacao, codigo, respostaDescricao);
     }
 
-    private void resposta(
+    private void definirRespostas(
             Operation operacao,
-            String codigo,
-            String descricao) {
+            Map<String, String> codigos
+    ) {
+        ApiResponses anteriores = operacao.getResponses();
+        ApiResponses novas = new ApiResponses();
 
-        if (operacao.getResponses() == null) {
-            operacao.setResponses(
-                    new io.swagger.v3.oas.models.responses.ApiResponses());
-        }
+        codigos.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entrada -> {
+                    String codigo = entrada.getKey();
 
-        ApiResponse existente = operacao.getResponses().get(codigo);
+                    ApiResponse resposta = anteriores == null
+                            ? null
+                            : anteriores.get(codigo);
 
-        if (existente == null) {
-            operacao.getResponses().addApiResponse(
-                    codigo, new ApiResponse().description(descricao));
-        } else {
-            existente.setDescription(descricao);
-        }
+                    // Preserva o schema de resposta gerado pelo
+                    // Springdoc quando o sucesso muda de 200 para 201.
+                    if (resposta == null
+                            && codigo.equals("201")
+                            && anteriores != null) {
+                        resposta = anteriores.get("200");
+                    }
+
+                    if (resposta == null) {
+                        resposta = new ApiResponse();
+                    }
+
+                    resposta.setDescription(entrada.getValue());
+
+                    // 204 nunca deve documentar corpo de resposta.
+                    if (codigo.equals("204")) {
+                        resposta.setContent(null);
+                    }
+
+                    novas.addApiResponse(codigo, resposta);
+                });
+
+        operacao.setResponses(novas);
     }
 
     private void documentarPaginacao(Operation operacao) {
-        if (operacao.getParameters() == null) return;
+        if (operacao.getParameters() == null) {
+            return;
+        }
 
         for (Parameter parametro : operacao.getParameters()) {
             if ("page".equals(parametro.getName())) {
                 parametro.setDescription(
-                        "Índice da página, começando em zero.");
+                        "Índice da página. Valor mínimo: 0."
+                );
                 parametro.setExample(0);
+
+                parametro.setSchema(
+                        new IntegerSchema()
+                                ._default(0)
+                                .minimum(java.math.BigDecimal.ZERO)
+                );
             }
 
             if ("size".equals(parametro.getName())) {
                 parametro.setDescription(
-                        "Quantidade de registros por página.");
+                        "Registros por página. "
+                                + "Mínimo: 1. Máximo: 50."
+                );
                 parametro.setExample(10);
+
+                parametro.setSchema(
+                        new IntegerSchema()
+                                ._default(10)
+                                .minimum(java.math.BigDecimal.ONE)
+                                .maximum(
+                                        java.math.BigDecimal.valueOf(50)
+                                )
+                );
             }
         }
     }
 }
+
+

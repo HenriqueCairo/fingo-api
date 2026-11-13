@@ -1,6 +1,5 @@
 package com.fingo.api.controller;
 
-import org.springframework.data.domain.PageRequest;
 import com.fingo.api.entity.Trilha;
 import com.fingo.api.repository.TrilhaRepository;
 import jakarta.validation.Valid;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.hateoas.EntityModel;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+import com.fingo.api.config.PaginacaoConfig;
 
 @RestController
 @RequestMapping("/api/trilhas")
@@ -29,7 +29,7 @@ public class TrilhaController {
             @RequestParam(defaultValue = "10") int size) {
 
         return repository.findAll(
-                PageRequest.of(page, size)
+                PaginacaoConfig.criar(page, size)
         );
     }
 

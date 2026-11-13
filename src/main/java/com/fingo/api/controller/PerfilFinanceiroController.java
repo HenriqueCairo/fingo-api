@@ -8,13 +8,13 @@ import com.fingo.api.repository.PerfilFinanceiroRepository;
 import com.fingo.api.repository.UsuarioRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.hateoas.EntityModel;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+import com.fingo.api.config.PaginacaoConfig;
 
 @RestController
 @RequestMapping("/api/perfis-financeiros")
@@ -34,7 +34,7 @@ public class PerfilFinanceiroController {
     public Page<PerfilFinanceiro> listar(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return repository.findAll(PageRequest.of(page, size));
+        return repository.findAll(PaginacaoConfig.criar(page, size));
     }
 
     @GetMapping("/{id}")
@@ -93,7 +93,7 @@ public class PerfilFinanceiroController {
             @RequestParam(defaultValue = "10") int size) {
 
         return repository.findByTipo(
-                tipo, PageRequest.of(page, size));
+                tipo, PaginacaoConfig.criar(page, size));
     }
 
 

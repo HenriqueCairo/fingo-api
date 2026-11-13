@@ -14,4 +14,3 @@ public class SwaggerThemeConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/static/swagger-ui/");
     }
 }
-
